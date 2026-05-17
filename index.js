@@ -6,16 +6,14 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 4000;
 
-// Variables
-const BD_USER = "jevxo_user";
-const BD_PASS = "dWxsDXPNhhGHJTT0";
-
 // Middleware
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
 // Connection URI
-const uri = `mongodb+srv://${BD_USER}:${BD_PASS}@cluster0.hz6ypdj.mongodb.net/?appName=Cluster0`;
+const dbUser = process.env.DB_USER || "jevxo_user";
+const dbPass = process.env.DB_PASS || "dWxsDXPNhhGHJTT0";
+const uri = `mongodb+srv://${dbUser}:${dbPass}@cluster0.hz6ypdj.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient
 const client = new MongoClient(uri, {
@@ -33,40 +31,50 @@ async function run() {
 
     const db = client.db('jevxo_post');
     const UsersCollection = db.collection('users');
-    const ProductsCollection = db.collection('products'); // নতুন প্রোডাক্ট কালেকশন
+    // Ekhaney products collection-ti bad dewa holo ebong success collection ti nirdishto kora holo
+    const SuccessCollection = db.collection('success'); 
 
     // ================= USER APIs =================
-    app.get('/users', async(req, res) => {
-        const result = await UsersCollection.find().toArray();
-        res.send(result);
-    });
-
-    app.post('/users', async(req, res) =>{
-        const users = req.body;
-        const result = await UsersCollection.insertOne(users);
-        res.send(result);
-    });
-    
-    // ================= PRODUCT APIs (ডাটাবেজে সেভ ও রিড করার জন্য) =================
-    
-    // ডাটাবেজ থেকে সব প্রোডাক্ট নিয়ে আসার API
-    app.get('/products', async (req, res) => {
+    app.get('/users', async (req, res) => {
         try {
-            const result = await ProductsCollection.find().sort({ _id: -1 }).toArray(); // নতুনগুলো আগে দেখাবে
+            const result = await UsersCollection.find().toArray();
             res.send(result);
         } catch (error) {
-            res.status(500).send({ message: "Failed to fetch products" });
+            res.status(500).send({ message: "Failed to fetch users", error: error.message });
         }
     });
 
-    // ডাটাবেজে নতুন প্রোডাক্ট সেভ করার API
-    app.post('/products', async (req, res) => {
+    app.post('/users', async (req, res) => {
         try {
-            const product = req.body;
-            const result = await ProductsCollection.insertOne(product);
+            const users = req.body;
+            const result = await UsersCollection.insertOne(users);
             res.send(result);
         } catch (error) {
-            res.status(500).send({ message: "Failed to add product" });
+            res.status(500).send({ message: "Failed to add user", error: error.message });
+        }
+    });
+    
+    // ================= SUCCESS APIs (Shudhu matro success collection er jonno) =================
+    
+    // 1. Success collection theke shob data dynamic-bhabe get korar API
+    app.get('/success', async (req, res) => {
+        try {
+            // Eta ekhon nishchitbhabe apnar screenshot er 'success' collection theke data niye ashbe
+            const result = await SuccessCollection.find().sort({ _id: -1 }).toArray(); 
+            res.send(result);
+        } catch (error) {
+            res.status(500).send({ message: "Failed to fetch success data", error: error.message });
+        }
+    });
+
+    // 2. Success collection-e notun kono destination database-e pathanor api (jodi proyojon hoy)
+    app.post('/success', async (req, res) => {
+        try {
+            const newData = req.body;
+            const result = await SuccessCollection.insertOne(newData);
+            res.send(result);
+        } catch (error) {
+            res.status(500).send({ message: "Failed to add success data", error: error.message });
         }
     });
     
@@ -80,7 +88,7 @@ async function run() {
 }
 run().catch(console.dir);
 
-// Routes
+// Root Route
 app.get('/', (req, res) => {
   res.send('jevxo server running!');
 });
